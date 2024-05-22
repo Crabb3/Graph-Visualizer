@@ -2,7 +2,9 @@
 "use client";
 import react, { useEffect, useRef } from "react";
 import "./graph.css";
+import Swal from "sweetalert2";
 import * as d3 from "d3";
+import { Instrument_Sans } from "next/font/google";
 
 export default function Page() {
   const graphRef = useRef();
@@ -11,7 +13,8 @@ export default function Page() {
   useEffect(() => {
     width = graphRef.current.clientWidth;
     height = graphRef.current.clientHeight;
-  });
+    buildGraph();
+  }, []);
   const buildGraph = () => {
     var svg = d3.select("svg");
     // clear svg
@@ -21,19 +24,66 @@ export default function Page() {
     data = data.filter((d) => d.length != 0);
     if (data[0] == "") return;
 
-    var nodes = [];
-    for (var i = 0; i < parseInt(data[0]); i++) {
-      nodes.push({ id: i });
+    const isNum = (...num) => {
+      return !isNaN(parseFloat(num)) && isFinite(num);
+    };
+
+    try {
+      var nodes = [];
+      if (!isNum(data[0])) throw "number of node is not valid!";
+      for (var i = 0; i < parseInt(data[0]); i++) {
+        nodes.push({ id: i });
+      }
+
+      var links = [];
+
+      var AlllinkData = data[1].slice(1, -1);
+      AlllinkData = [...AlllinkData];
+      AlllinkData = AlllinkData.filter((d) => isNum(d));
+
+      for (var j = 0; j < AlllinkData.length; j += 3) {
+        var linkData = [AlllinkData[j], AlllinkData[j + 1], AlllinkData[j + 2]];
+
+        if (linkData.some((d) => isNum(d) === false))
+          throw "Some link data is not number";
+
+        if (
+          parseInt(linkData[0]) >= nodes.length ||
+          parseInt(linkData[1]) >= nodes.length
+        ) {
+          throw "Node ID out of range!";
+        }
+
+        links.push({
+          source: parseInt(linkData[0]),
+          target: parseInt(linkData[1]),
+          value: parseInt(linkData[2]),
+        });
+      }
+    } catch (e) {
+      Swal.fire({
+        title: "Error",
+        text: e,
+        icon: "error",
+      });
+      return;
     }
 
-    var links = [];
-    for (var j = 1; j < data.length; j++) {
-      var linkData = data[j].split(" ");
-      links.push({
-        source: parseInt(linkData[0]),
-        target: parseInt(linkData[1]),
-        value: parseInt(linkData[2]),
-      });
+    var DirectedGraph = document.getElementById("directed");
+    if (DirectedGraph.checked) {
+      svg
+        .append("defs")
+        .append("marker")
+        .attr("id", "arrowhead")
+        .attr("viewBox", "0 -5 10 10")
+        .attr("refX", 23)
+        .attr("refY", 0)
+        .attr("markerWidth", 6)
+        .attr("markerHeight", 6)
+        .attr("orient", "auto")
+        .append("path")
+        .attr("d", "M0,-5L10,0L0,5")
+        .attr("fill", "black");
     }
 
     var simulation = d3
@@ -43,19 +93,27 @@ export default function Page() {
         d3
           .forceLink(links)
           .id((d) => d.id)
-          .distance(100)
+          .distance(250)
       )
-      .force("charge", d3.forceManyBody().strength(-300))
+      .force("charge", d3.forceManyBody().strength(-200))
       .force("center", d3.forceCenter(width / 2, height / 2));
 
-    var link = svg
-      .append("g")
-      .attr("class", "links")
+    var linkGroup = svg.append("g").attr("class", "links");
+    var link = linkGroup
       .selectAll("line")
       .data(links)
       .enter()
       .append("line")
-      .attr("class", "link");
+      .attr("class", "link")
+      .attr("marker-end", "url(#arrowhead)");
+
+    var linkLabel = linkGroup
+      .selectAll("text")
+      .data(links)
+      .enter()
+      .append("text")
+      .attr("class", "linklabel")
+      .text((d) => d.value);
 
     var nodeGroup = svg.append("g").attr("class", "nodes");
 
@@ -78,15 +136,29 @@ export default function Page() {
         return d.id;
       });
 
+    const checkX = (x) => {
+      if (x > width) return width;
+      else if (x < 0) return 0;
+      else return x;
+    };
+    const checkY = (x) => {
+      if (x > height) return height;
+      else if (x < 0) return 0;
+      else return x;
+    };
+
     simulation.on("tick", () => {
       link
         .attr("x1", (d) => d.source.x)
         .attr("y1", (d) => d.source.y)
         .attr("x2", (d) => d.target.x)
         .attr("y2", (d) => d.target.y);
+      linkLabel
+        .attr("x", (d) => (d.source.x + d.target.x) / 2)
+        .attr("y", (d) => (d.source.y + d.target.y) / 2);
 
-      node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
-      nodeLabel.attr("x", (d) => d.x).attr("y", (d) => d.y + 5);
+      node.attr("cx", (d) => checkX(d.x)).attr("cy", (d) => checkY(d.y));
+      nodeLabel.attr("x", (d) => checkX(d.x)).attr("y", (d) => checkY(d.y + 5));
     });
 
     function drag(simulation) {
@@ -115,15 +187,25 @@ export default function Page() {
     }
   };
   return (
-    <div className="flex flex-row justify-evenly mt-12 w-full h-full">
+    <div className="flex flex-row justify-evenly mt-12 w-full h-full gap-2">
       <div className="flex flex-col w-1/4">
-        <textarea ref={textRef} className="border h-96 text-2xl"></textarea>
+        <textarea
+          ref={textRef}
+          className="border h-96 text-2xl"
+          placeholder="3 &#013;0 1 3 &#013;1 2 2"
+          rows="5"
+        ></textarea>
         <button
           className="p-4 bg-slate-600 text-white rounded text-xl"
           onClick={buildGraph}
         >
           Generate
         </button>
+
+        <div class="flex justify-center checkbox-wrapper-14 mt-6">
+          <input id="directed" type="checkbox" class="switch" />
+          <label for="directed">Directed Graph</label>
+        </div>
       </div>
       <svg className="w-full h-full border" ref={graphRef}></svg>
     </div>
