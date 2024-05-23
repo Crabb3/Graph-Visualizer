@@ -28,7 +28,7 @@ export default function Page() {
         d3
           .forceLink(links)
           .id((d) => d.id)
-          .distance(150)
+          .distance(100)
       )
       .force("charge", d3.forceManyBody().strength(-200))
       .force("center", d3.forceCenter(width / 2, height / 2));

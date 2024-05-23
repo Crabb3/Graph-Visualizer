@@ -11,6 +11,10 @@
 [[start,dest,cost],[start,dest,cost]...]
 ```
 
+#### Demo
+
+![image](/mov/graphMov.gif)
+
 ### Tree
 
 - input data as following format
@@ -19,3 +23,7 @@
 ```cpp=
 [val,val,null...]
 ```
+
+#### Demo
+
+![image](/mov/TreeMov.gif)

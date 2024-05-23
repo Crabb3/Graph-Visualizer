@@ -1,3 +1,4 @@
+import { lineRadial } from "d3";
 import Swal from "sweetalert2";
 
 export const isNum = (...num) => {
@@ -19,11 +20,23 @@ export const FormatGraphData = (data) => {
     }
 
     var AlllinkData = data[1].slice(1, -1);
-    AlllinkData = [...AlllinkData];
-    AlllinkData = AlllinkData.filter((d) => isNum(d));
+    var curNum = undefined;
+    var linkNumber = [];
+    for (var j = 0; j < AlllinkData.length; j++) {
+      if (!isNum(AlllinkData[j])) {
+        if (curNum !== undefined) {
+          linkNumber.push(curNum);
+        }
+        curNum = undefined;
+      } else {
+        if (curNum === undefined) curNum = 0;
+        curNum = curNum * 10 + parseInt(AlllinkData[j]);
+      }
+    }
+    console.log(linkNumber);
 
-    for (var j = 0; j < AlllinkData.length; j += 3) {
-      var linkData = [AlllinkData[j], AlllinkData[j + 1], AlllinkData[j + 2]];
+    for (var j = 0; j < linkNumber.length; j += 3) {
+      var linkData = [linkNumber[j], linkNumber[j + 1], linkNumber[j + 2]];
 
       if (linkData.some((d) => isNum(d) === false))
         throw "Some link data is not number";
