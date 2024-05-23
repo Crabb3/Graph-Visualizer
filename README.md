@@ -4,14 +4,18 @@
 
 ### Graph
 
-- Convert input data to following format
+- input data as following format
 
 ```cpp=
 <number of node>
-<source> <target> <value>
-<source> <target> <value>
-<source> <target> <value>
-...
+[[start,dest,cost],[start,dest,cost]...]
 ```
 
 ### Tree
+
+- input data as following format
+- only can input Integer or null
+
+```cpp=
+[val,val,null...]
+```

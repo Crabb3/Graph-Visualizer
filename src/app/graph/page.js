@@ -1,10 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 import react, { useEffect, useRef } from "react";
-import "./graph.css";
-import Swal from "sweetalert2";
+import "../utils/graph.css";
 import * as d3 from "d3";
-import { Instrument_Sans } from "next/font/google";
+import { Add, FormatGraphData } from "../utils/algo";
 
 export default function Page() {
   const graphRef = useRef();
@@ -13,61 +12,13 @@ export default function Page() {
   useEffect(() => {
     width = graphRef.current.clientWidth;
     height = graphRef.current.clientHeight;
-    buildGraph();
-  }, []);
+  });
   const buildGraph = () => {
     var svg = d3.select("svg");
     // clear svg
     svg.text("");
 
-    var data = textRef.current.value.split("\n");
-    data = data.filter((d) => d.length != 0);
-    if (data[0] == "") return;
-
-    const isNum = (...num) => {
-      return !isNaN(parseFloat(num)) && isFinite(num);
-    };
-
-    try {
-      var nodes = [];
-      if (!isNum(data[0])) throw "number of node is not valid!";
-      for (var i = 0; i < parseInt(data[0]); i++) {
-        nodes.push({ id: i });
-      }
-
-      var links = [];
-
-      var AlllinkData = data[1].slice(1, -1);
-      AlllinkData = [...AlllinkData];
-      AlllinkData = AlllinkData.filter((d) => isNum(d));
-
-      for (var j = 0; j < AlllinkData.length; j += 3) {
-        var linkData = [AlllinkData[j], AlllinkData[j + 1], AlllinkData[j + 2]];
-
-        if (linkData.some((d) => isNum(d) === false))
-          throw "Some link data is not number";
-
-        if (
-          parseInt(linkData[0]) >= nodes.length ||
-          parseInt(linkData[1]) >= nodes.length
-        ) {
-          throw "Node ID out of range!";
-        }
-
-        links.push({
-          source: parseInt(linkData[0]),
-          target: parseInt(linkData[1]),
-          value: parseInt(linkData[2]),
-        });
-      }
-    } catch (e) {
-      Swal.fire({
-        title: "Error",
-        text: e,
-        icon: "error",
-      });
-      return;
-    }
+    const [nodes, links] = FormatGraphData(textRef.current.value);
 
     var DirectedGraph = document.getElementById("directed");
     if (DirectedGraph.checked) {
@@ -188,12 +139,11 @@ export default function Page() {
   };
   return (
     <div className="flex flex-row justify-evenly mt-12 w-full h-full gap-2">
-      <div className="flex flex-col w-1/4">
+      <div className="flex flex-col w-1/4 relative">
         <textarea
           ref={textRef}
-          className="border h-96 text-2xl"
-          placeholder="3 &#013;0 1 3 &#013;1 2 2"
-          rows="5"
+          placeholder={"3\n[[0,1,3],[2,1,4]]"}
+          className="border h-96 text-2xl outline-none focus:[#placeholder]"
         ></textarea>
         <button
           className="p-4 bg-slate-600 text-white rounded text-xl"
